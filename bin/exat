@@ -1,0 +1,114 @@
+#!/usr/bin/env node
+const chokidar = require('chokidar');
+const yargs = require('yargs');
+const { spawn } = require('child_process');
+const once = require('once');
+let firstSignal = signal => ((firstSignal = null), signal);
+let lastSignal = () => 'SIGKILL';
+const nextSignal = signal => (firstSignal || lastSignal)(signal);
+let watcher = null;
+let child = null;
+let command = null;
+let ingnore = null;
+let poll = null;
+let filter = null;
+let timeout = null;
+const { error } = console;
+let commandHandler = once(() => {
+  clearTimeout(timeout);
+  child = spawn(command.shift(), command, {
+    cwd: process.cwd(),
+    detached: true,
+  });
+
+  child.on('error', error);
+
+  process.stdin.pipe(child.stdout);
+  child.stdout.pipe(process.stdout);
+  child.stderr.pipe(process.stderr);
+
+  child.on('close', code => process.exit(code));
+});
+let timeoutHandler = () => {
+  clearTimeout(timeout);
+  process.exit(255);
+};
+const onFilesystemEvent = filepath => {
+  if (filepath.match(filter)) {
+    commandHandler();
+  }
+};
+
+process.on('exit', () => {
+  if (watcher) {
+    watcher.close();
+  }
+});
+process.on('uncaughtException', err => {
+  error(err);
+
+  if (watcher) {
+    watcher.close();
+  }
+
+  process.exit(255);
+});
+
+['SIGTERM', 'SIGINT', 'SIGHUP', 'SIGQUIT'].forEach(signal =>
+  process.on(
+    signal,
+    setTimeout.bind(
+      null,
+      () => {
+        if (child) {
+          child.kill(nextSignal(signal));
+        } else {
+          process.exit(255);
+        }
+      },
+      1000
+    )
+  )
+);
+
+const argv = yargs
+  .option('timeout', {
+    alias: 't',
+    description: 'Timeout for waiting of file system changes',
+    type: 'number',
+    default: 0,
+  })
+  .option('ignore', {
+    alias: 'i',
+    description: 'A comma-separated separated paths those should be ignored',
+    type: 'string',
+    default: '',
+  })
+  .option('filter', {
+    alias: 'f',
+    description: 'Regular expression used to filter file changes',
+    type: 'string',
+    default: '.*',
+  })
+  .option('poll', {
+    alias: 'p',
+    description: 'Use polling for file system changes',
+    type: 'boolean',
+    default: false,
+  }).argv;
+
+command = argv._;
+ingnore = argv.ingnore;
+poll = argv.poll;
+filter = new RegExp(argv.filter);
+timeout = argv.timeout && setTimeout(timeoutHandler, argv.timeout * 1000);
+
+watcher = chokidar.watch([process.cwd()], {
+  ignoreInitial: true,
+  ignored: ingnore,
+  usePolling: poll,
+});
+
+watcher.on('add', onFilesystemEvent);
+watcher.on('change', onFilesystemEvent);
+watcher.on('unlink', onFilesystemEvent);
