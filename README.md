@@ -1,4 +1,4 @@
-# exat - an essential tool to react on file system events
+# exat - react on file system events
 
 [![Dependency Status](https://img.shields.io/david/baleyko/exat.svg)](https://david-dm.org/baleyko/exat)
 [![NPM version](https://img.shields.io/npm/v/exat.svg)](https://www.npmjs.com/package/exat)
@@ -11,7 +11,7 @@ It's a tiny utility which just listen to file system events(like add/update/remo
 
 1. Install the exat utility via npm/yarn:
 
-```bash exat
+```bash
 $ yarn global add exat
 # -or-
 $ npm i -g exat
@@ -31,7 +31,7 @@ $ exat --filter=newfile.txt rm newfile.txt
 $ touch newfile.txt
 ```
 
-3. Make sure that the 'rm filename' command was executed:
+3. Make sure that the 'rm newfile.txt' command was executed:
 
 ```bash
 $ cat newfile.txt
