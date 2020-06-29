@@ -1,7 +1,7 @@
 {
   "name": "exat",
   "description": "An essential tool to react on file system events",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "homepage": "https://github.com/baleyko/exat#README.md",
   "author": "Valerii Baleiko <baleyko@gmail.com>",
